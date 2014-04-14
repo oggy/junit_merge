@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+require 'junit_merge/app'
+
+exit JunitMerge::App.new.run(*ARGV)

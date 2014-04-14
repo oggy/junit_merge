@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite tests="<%= num_tests %>" failures="<%= num_failures %>" errors="<%= num_errors %>" time="0.000001" timestamp="2014-04-10T14:29:06-04:00">
+  <properties/>
+  <% tests.each do |name, result| %>
+    <% class_name, test_name = name.split('.') %>
+    <% if result == :pass %>
+      <testcase classname="<%= class_name %>" name="<%= test_name %>" time="0.000055"/>
+    <% else %>
+      <testcase classname="<%= class_name %>" name="<%= test_name %>" time="0.000001">
+        <failure message="MESSAGE" type="TYPE">
+          <![CDATA[BODY]]>
+        </failure>
+      </testcase>
+    <% end %>
+  <% end %>
+</testsuite>
