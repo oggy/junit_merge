@@ -73,8 +73,8 @@ Putting it all together:
     fi
     exit $status
 
-Note that if you don't specify the shebang, Jenkins will run with `-ex`, which
-will stop execution after the first build failure.
+Note that if you don't specify the shebang, Jenkins will run your shell with
+`-ex`, which will stop execution after the first build failure.
 
 [rspec]: https://github.com/rspec/rspec
 [jenkins]: http://jenkins-ci.org/
