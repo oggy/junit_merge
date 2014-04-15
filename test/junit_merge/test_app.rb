@@ -105,6 +105,17 @@ describe JunitMerge::App do
       stdout.string.must_equal('')
       stderr.string.must_equal('')
     end
+
+    it "correctly merges tests with metacharacters in the name" do
+      create_file("#{tmp}/source.xml", 'a\'"a.b"\'b' => :pass)
+      create_file("#{tmp}/target.xml", 'a\'"a.b"\'b' => :fail)
+      app.run("#{tmp}/source.xml", "#{tmp}/target.xml").must_equal 0
+      document = parse_file("#{tmp}/target.xml")
+      results(document).must_equal([['a\'"a.b"\'b', :pass]])
+      summaries(document).must_equal([{tests: 1, failures: 0, errors: 0, skipped: 0}])
+      stdout.string.must_equal('')
+      stderr.string.must_equal('')
+    end
   end
 
   describe "when merging directories" do

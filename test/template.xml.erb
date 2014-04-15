@@ -2,7 +2,7 @@
 <testsuite tests="<%= num_tests %>" failures="<%= num_failures %>" errors="<%= num_errors %>" skipped="<%= num_skipped %>" time="0.000001" timestamp="2014-04-10T14:29:06-04:00">
   <properties/>
   <% tests.each do |name, result| %>
-    <% class_name, test_name = name.split('.') %>
+  <% class_name, test_name = name.gsub('"', '&quot;').split('.') %>
     <testcase classname="<%= class_name %>" name="<%= test_name %>" time="0.000001">
       <% if result == :fail %>
         <failure message="MESSAGE" type="TYPE">

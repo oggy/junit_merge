@@ -65,7 +65,11 @@ module JunitMerge
         summary_diff = SummaryDiff.new
         summary_diff.add(node, 1)
 
-        original = target.xpath("testsuite/testcase[@name='#{node.attribute('name')}']").first
+        # XPath doesn't let you escape the delimiting quotes. Need concat() here
+        # to support the general case.
+        escaped_name = node['name'].to_s.gsub('"', '", \'"\', "')
+        original = target.xpath("testsuite/testcase[@name=concat('', \"#{escaped_name}\")]").first
+
         if original
           summary_diff.add(original, -1)
           original.replace(node)
