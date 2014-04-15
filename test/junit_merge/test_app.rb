@@ -116,6 +116,16 @@ describe JunitMerge::App do
       stdout.string.must_equal('')
       stderr.string.must_equal('')
     end
+
+    it "correctly merges tests with the same name in different classes" do
+      create_file("#{tmp}/source.xml", 'a.a' => :pass, 'b.a' => :fail)
+      create_file("#{tmp}/target.xml", 'a.a' => :fail, 'b.a' => :pass)
+      app.run("#{tmp}/source.xml", "#{tmp}/target.xml").must_equal 0
+      document = parse_file("#{tmp}/target.xml")
+      results(document).must_equal([['a.a', :pass], ['b.a', :fail]])
+      stdout.string.must_equal('')
+      stderr.string.must_equal('')
+    end
   end
 
   describe "when merging directories" do

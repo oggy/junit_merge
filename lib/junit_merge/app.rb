@@ -65,10 +65,11 @@ module JunitMerge
         summary_diff = SummaryDiff.new
         summary_diff.add(node, 1)
 
-        # XPath doesn't let you escape the delimiting quotes. Need concat() here
-        # to support the general case.
-        escaped_name = node['name'].to_s.gsub('"', '", \'"\', "')
-        original = target.xpath("testsuite/testcase[@name=concat('', \"#{escaped_name}\")]").first
+        predicates = [
+          attribute_predicate('classname', node['classname']),
+          attribute_predicate('name', node['name']),
+        ].join(' and ')
+        original = target.xpath("testsuite/testcase[#{predicates}]").first
 
         if original
           summary_diff.add(original, -1)
@@ -84,6 +85,13 @@ module JunitMerge
       end
 
       open(target_path, 'w') { |f| f.write(target.to_s) }
+    end
+
+    def attribute_predicate(name, value)
+      # XPath doesn't let you escape the delimiting quotes. Need concat() here
+      # to support the general case.
+      escaped = value.to_s.gsub('"', '", \'"\', "')
+      "@#{name}=concat('', \"#{escaped}\")"
     end
 
     def apply_summary_diff(diff, node)
