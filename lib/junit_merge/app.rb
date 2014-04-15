@@ -62,16 +62,50 @@ module JunitMerge
       target = Nokogiri::XML::Document.parse(target_text)
 
       source.xpath("//testsuite/testcase").each do |node|
+        summary_diff = SummaryDiff.new
+        summary_diff.add(node, 1)
+
         original = target.xpath("testsuite/testcase[@name='#{node.attribute('name')}']").first
         if original
+          summary_diff.add(original, -1)
           original.replace(node)
         else
           testsuite = target.xpath("testsuite").first
           testsuite.add_child(node)
         end
+
+        node.ancestors.select { |a| a.name =~ /\Atestsuite?\z/ }.each do |suite|
+          summary_diff.apply_to(suite)
+        end
       end
 
       open(target_path, 'w') { |f| f.write(target.to_s) }
+    end
+
+    def apply_summary_diff(diff, node)
+      summary_diff.each do |key, delta|
+      end
+    end
+
+    SummaryDiff = Struct.new(:tests, :failures, :errors, :skipped) do
+      def initialize
+        self.tests = self.failures = self.errors = self.skipped = 0
+      end
+
+      def add(test_node, delta)
+        self.tests += delta
+        self.failures += delta if !test_node.xpath('failure').empty?
+        self.errors += delta if !test_node.xpath('error').empty?
+        self.skipped += delta if !test_node.xpath('skipped').empty?
+      end
+
+      def apply_to(node)
+        %w[tests failures errors skipped].each do |attribute|
+          if (value = node[attribute])
+            node[attribute] = value.to_i + send(attribute)
+          end
+        end
+      end
     end
 
     def parse_args(args)

@@ -10,6 +10,7 @@ describe JunitMerge::App do
     num_tests = tests.size
     num_failures = tests.values.count(:fail)
     num_errors = tests.values.count(:error)
+    num_skipped = tests.values.count(:skipped)
 
     FileUtils.mkdir_p File.dirname(path)
     open(path, 'w') do |file|
@@ -22,11 +23,18 @@ describe JunitMerge::App do
   end
 
   def parse_file(path)
-    document = Nokogiri::XML::Document.parse(File.read(path))
+    Nokogiri::XML::Document.parse(File.read(path))
+  end
+
+  def results(node)
     results = []
-    document.xpath('//testcase').each do |testcase_node|
+    node.xpath('//testcase').each do |testcase_node|
       if !testcase_node.xpath('failure').empty?
         result = :fail
+      elsif !testcase_node.xpath('error').empty?
+        result = :error
+      elsif !testcase_node.xpath('skipped').empty?
+        result = :skipped
       else
         result = :pass
       end
@@ -37,18 +45,42 @@ describe JunitMerge::App do
     results
   end
 
+  def summaries(node)
+    summaries = []
+    node.xpath('//testsuite | //testsuites').each do |node|
+      summary = {}
+      %w[tests failures errors skipped].each do |attribute|
+        if (value = node[attribute])
+          summary[attribute.to_sym] = Integer(value)
+        end
+      end
+      summaries << summary
+    end
+    summaries
+  end
+
   let(:stdin ) { StringIO.new }
   let(:stdout) { StringIO.new }
   let(:stderr) { StringIO.new }
   let(:app) { JunitMerge::App.new(stdin: stdin, stdout: stdout, stderr: stderr) }
 
   describe "when merging files" do
-    it "merges files together" do
-      create_file("#{tmp}/source.xml", 'a.a' => :pass, 'a.b' => :fail)
-      create_file("#{tmp}/target.xml", 'a.a' => :fail, 'a.b' => :pass)
+    it "merges results" do
+      create_file("#{tmp}/source.xml", 'a.a' => :pass, 'a.b' => :fail, 'a.c' => :error, 'a.d' => :skipped)
+      create_file("#{tmp}/target.xml", 'a.a' => :fail, 'a.b' => :error, 'a.c' => :skipped, 'a.d' => :pass)
       app.run("#{tmp}/source.xml", "#{tmp}/target.xml").must_equal 0
-      results = parse_file("#{tmp}/target.xml")
-      results.must_equal([['a.a', :pass], ['a.b', :fail]])
+      document = parse_file("#{tmp}/target.xml")
+      results(document).must_equal([['a.a', :pass], ['a.b', :fail], ['a.c', :error], ['a.d', :skipped]])
+      stdout.string.must_equal('')
+      stderr.string.must_equal('')
+    end
+
+    it "updates summaries" do
+      create_file("#{tmp}/source.xml", 'a.a' => :pass, 'a.b' => :skipped, 'a.c' => :fail)
+      create_file("#{tmp}/target.xml", 'a.a' => :fail, 'a.b' => :error, 'a.c' => :fail)
+      app.run("#{tmp}/source.xml", "#{tmp}/target.xml").must_equal 0
+      document = parse_file("#{tmp}/target.xml")
+      summaries(document).must_equal([{tests: 3, failures: 1, errors: 0, skipped: 1}])
       stdout.string.must_equal('')
       stderr.string.must_equal('')
     end
@@ -57,18 +89,19 @@ describe JunitMerge::App do
       create_file("#{tmp}/source.xml", 'a.b' => :pass)
       create_file("#{tmp}/target.xml", 'a.a' => :pass, 'a.b' => :fail)
       app.run("#{tmp}/source.xml", "#{tmp}/target.xml").must_equal 0
-      results = parse_file("#{tmp}/target.xml")
-      results.must_equal([['a.a', :pass], ['a.b', :pass]])
+      document = parse_file("#{tmp}/target.xml")
+      results(document).must_equal([['a.a', :pass], ['a.b', :pass]])
       stdout.string.must_equal('')
       stderr.string.must_equal('')
     end
 
     it "appends nodes only in the source" do
-      create_file("#{tmp}/source.xml", 'a.a' => :pass, 'a.b' => :pass)
-      create_file("#{tmp}/target.xml", 'a.a' => :fail)
+      create_file("#{tmp}/source.xml", 'a.a' => :fail, 'a.b' => :error)
+      create_file("#{tmp}/target.xml", 'a.a' => :pass)
       app.run("#{tmp}/source.xml", "#{tmp}/target.xml").must_equal 0
-      result = parse_file("#{tmp}/target.xml")
-      result.must_equal([['a.a', :pass], ['a.b', :pass]])
+      document = parse_file("#{tmp}/target.xml")
+      results(document).must_equal([['a.a', :fail], ['a.b', :error]])
+      summaries(document).must_equal([{tests: 2, failures: 1, errors: 1, skipped: 0}])
       stdout.string.must_equal('')
       stderr.string.must_equal('')
     end
@@ -79,8 +112,8 @@ describe JunitMerge::App do
       create_file("#{tmp}/source/a.xml", 'a.a' => :pass, 'a.b' => :fail)
       create_file("#{tmp}/target/a.xml", 'a.a' => :fail, 'a.b' => :pass)
       app.run("#{tmp}/source", "#{tmp}/target").must_equal 0
-      result = parse_file("#{tmp}/target/a.xml")
-      result.must_equal([['a.a', :pass], ['a.b', :fail]])
+      document = parse_file("#{tmp}/target/a.xml")
+      results(document).must_equal([['a.a', :pass], ['a.b', :fail]])
       stdout.string.must_equal('')
       stderr.string.must_equal('')
     end
@@ -89,8 +122,8 @@ describe JunitMerge::App do
       FileUtils.mkdir "#{tmp}/source"
       create_file("#{tmp}/target/a.xml", 'a.a' => :fail, 'a.b' => :pass)
       app.run("#{tmp}/source", "#{tmp}/target").must_equal 0
-      result = parse_file("#{tmp}/target/a.xml")
-      result.must_equal([['a.a', :fail], ['a.b', :pass]])
+      document = parse_file("#{tmp}/target/a.xml")
+      results(document).must_equal([['a.a', :fail], ['a.b', :pass]])
       stdout.string.must_equal('')
       stderr.string.must_equal('')
     end
@@ -99,8 +132,8 @@ describe JunitMerge::App do
       create_file("#{tmp}/source/a.xml", 'a.a' => :fail, 'a.b' => :pass)
       create_directory("#{tmp}/target")
       app.run("#{tmp}/source", "#{tmp}/target").must_equal 0
-      result = parse_file("#{tmp}/target/a.xml")
-      result.must_equal([['a.a', :fail], ['a.b', :pass]])
+      document = parse_file("#{tmp}/target/a.xml")
+      results(document).must_equal([['a.a', :fail], ['a.b', :pass]])
       stdout.string.must_equal('')
       stderr.string.must_equal('')
     end
