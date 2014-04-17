@@ -95,13 +95,24 @@ describe JunitMerge::App do
       stderr.string.must_equal('')
     end
 
-    it "appends nodes only in the source" do
+    it "appends nodes only in the source by default" do
       create_file("#{tmp}/source.xml", 'a.a' => :fail, 'a.b' => :error)
       create_file("#{tmp}/target.xml", 'a.a' => :pass)
       app.run("#{tmp}/source.xml", "#{tmp}/target.xml").must_equal 0
       document = parse_file("#{tmp}/target.xml")
       results(document).must_equal([['a.a', :fail], ['a.b', :error]])
       summaries(document).must_equal([{tests: 2, failures: 1, errors: 1, skipped: 0}])
+      stdout.string.must_equal('')
+      stderr.string.must_equal('')
+    end
+
+    it "skips nodes only in the source if --update is given" do
+      create_file("#{tmp}/source.xml", 'a.a' => :fail, 'a.b' => :error)
+      create_file("#{tmp}/target.xml", 'a.a' => :pass)
+      app.run('--update-only', "#{tmp}/source.xml", "#{tmp}/target.xml").must_equal 0
+      document = parse_file("#{tmp}/target.xml")
+      results(document).must_equal([['a.a', :fail]])
+      summaries(document).must_equal([{tests: 1, failures: 1, errors: 0, skipped: 0}])
       stdout.string.must_equal('')
       stderr.string.must_equal('')
     end

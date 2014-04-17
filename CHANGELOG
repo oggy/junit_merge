@@ -1,3 +1,7 @@
+== LATEST
+
+ * Add --update-only option, to not append new tests in the source.
+
 == 0.0.1 2014-04-15
 
  * Hi.

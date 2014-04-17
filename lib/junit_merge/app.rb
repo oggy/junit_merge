@@ -1,3 +1,4 @@
+require 'optparse'
 require 'find'
 require 'fileutils'
 require 'nokogiri'
@@ -10,6 +11,7 @@ module JunitMerge
       @stdin  = options[:stdin ] || STDIN
       @stdout = options[:stdout] || STDOUT
       @stderr = options[:stderr] || STDERR
+      @update_only = false
     end
 
     attr_reader :stdin, :stdout, :stderr
@@ -38,7 +40,7 @@ module JunitMerge
         raise Error, "no such file: #{source_path}"
       end
       0
-    rescue Error => error
+    rescue Error, OptionParse::ParseError => error
       stderr.puts error.message
       1
     end
@@ -63,7 +65,6 @@ module JunitMerge
 
       source.xpath("//testsuite/testcase").each do |node|
         summary_diff = SummaryDiff.new
-        summary_diff.add(node, 1)
 
         predicates = [
           attribute_predicate('classname', node['classname']),
@@ -72,9 +73,11 @@ module JunitMerge
         original = target.xpath("testsuite/testcase[#{predicates}]").first
 
         if original
+          summary_diff.add(node, 1)
           summary_diff.add(original, -1)
           original.replace(node)
-        else
+        elsif !@update_only
+          summary_diff.add(node, 1)
           testsuite = target.xpath("testsuite").first
           testsuite.add_child(node)
         end
@@ -121,13 +124,23 @@ module JunitMerge
     end
 
     def parse_args(args)
+      parser = OptionParser.new do |parser|
+        parser.banner = usage
+        parser.on '-u', '--update-only', "Only update nodes, don't append new nodes in the source." do
+          @update_only = true
+        end
+      end
+
+      parser.parse!(args)
+
       args.size == 2 or
         raise Error, usage
+
       args
     end
 
     def usage
-      "USAGE: #$0 SOURCE TARGET"
+      "USAGE: #$0 [options] SOURCE TARGET"
     end
   end
 end
