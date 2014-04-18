@@ -17,27 +17,32 @@ module JunitMerge
     attr_reader :stdin, :stdout, :stderr
 
     def run(*args)
-      source_path, target_path = parse_args(args)
+      *source_paths, target_path = parse_args(args)
+      all_paths = [*source_paths, target_path]
 
-      not_found = [source_path, target_path].select { |path| !File.exist?(path) }
+      not_found = all_paths.select { |path| !File.exist?(path) }
       not_found.empty? or
-        raise Error, "no such file: #{not_found.join(', ')}"
+        raise Error, "no such file(s): #{not_found.join(', ')}"
 
-      if File.directory?(source_path)
-        Find.find(source_path) do |source_file_path|
-          next if !File.file?(source_file_path)
-          target_file_path = source_file_path.sub(source_path, target_path)
-          if File.exist?(target_file_path)
-            merge_file(source_file_path, target_file_path)
-          else
-            FileUtils.mkdir_p(File.dirname(target_file_path))
-            FileUtils.cp(source_file_path, target_file_path)
+      if source_paths.empty?
+        stderr.puts "warning: no source files given"
+      else
+        source_paths.each do |source_path|
+          if File.directory?(source_path)
+            Find.find(source_path) do |source_file_path|
+              next if !File.file?(source_file_path)
+              target_file_path = source_file_path.sub(source_path, target_path)
+              if File.exist?(target_file_path)
+                merge_file(source_file_path, target_file_path)
+              else
+                FileUtils.mkdir_p(File.dirname(target_file_path))
+                FileUtils.cp(source_file_path, target_file_path)
+              end
+            end
+          else File.exist?(source_path)
+            merge_file(source_path, target_path)
           end
         end
-      elsif File.exist?(source_path)
-        merge_file(source_path, target_path)
-      else
-        raise Error, "no such file: #{source_path}"
       end
       0
     rescue Error, OptionParse::ParseError => error
@@ -133,14 +138,14 @@ module JunitMerge
 
       parser.parse!(args)
 
-      args.size == 2 or
+      args.size >= 1 or
         raise Error, usage
 
       args
     end
 
     def usage
-      "USAGE: #$0 [options] SOURCE TARGET"
+      "USAGE: #$0 [options] SOURCES ... TARGET"
     end
   end
 end

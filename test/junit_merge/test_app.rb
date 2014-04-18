@@ -195,9 +195,29 @@ describe JunitMerge::App do
     stderr.string.must_match /no such file/
   end
 
-  it "errors with a usage message if 2 args aren't given" do
+  it "exits with a warning if no source files are given" do
+    create_file("#{tmp}/target.xml", 'a.a' => :pass, 'a.b' => :fail)
+    app.run("#{tmp}/target.xml").must_equal 0
+    document = parse_file("#{tmp}/target.xml")
+    results(document).must_equal([['a.a', :pass], ['a.b', :fail]])
+    stdout.string.must_equal('')
+    stderr.string.must_equal("warning: no source files given\n")
+  end
+
+  it "can merge multiple source files into the target in order" do
+    create_file("#{tmp}/source1.xml", 'a.a' => :fail, 'a.b' => :fail)
+    create_file("#{tmp}/source2.xml", 'a.a' => :pass)
+    create_file("#{tmp}/target.xml", 'a.a' => :error, 'a.b' => :error, 'a.c' => :error)
+    app.run("#{tmp}/source1.xml", "#{tmp}/source2.xml", "#{tmp}/target.xml").must_equal 0
+    document = parse_file("#{tmp}/target.xml")
+    results(document).must_equal([['a.a', :pass], ['a.b', :fail], ['a.c', :error]])
+    stdout.string.must_equal('')
+    stderr.string.must_equal('')
+  end
+
+  it "errors with a usage message if no args aren't given" do
     FileUtils.touch "#{tmp}/source.xml"
-    app.run("#{tmp}/source.xml").must_equal 1
+    app.run.must_equal 1
     File.read("#{tmp}/source.xml").must_equal('')
     stdout.string.must_equal('')
     stderr.string.must_match /USAGE/
