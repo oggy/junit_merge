@@ -1,7 +1,7 @@
 ## JUnit Merge
 
-Merges two JUnit XML reports, such that results from one run may override those
-in the other. Reports may be single files or directory trees.
+Merges two or more JUnit XML reports, such that results from one run may
+override those in the other. Reports may be single files or directory trees.
 
 ## Usage
 
@@ -11,10 +11,12 @@ Install:
 
 Run:
 
-    junit_merge SOURCE.xml TARGET.xml
+    junit_merge SOURCE1.xml SOURCE2.xml ... TARGET.xml
 
-Test results in SOURCE.xml will overwrite their counterparts in
-TARGET.xml. Summary statistics will be updated as necessary.
+Test results in SOURCE[1..n].xml will overwrite their counterparts in
+TARGET.xml. Summary statistics will be updated as necessary. The sources and
+target may be directories -- files at the same relative paths under each will be
+merged (recursively).
 
 ## Why?
 
