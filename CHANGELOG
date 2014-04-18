@@ -1,4 +1,4 @@
-== LATEST
+== 0.1.1 2014-04-18
 
  * Merging directories with --update-only shouldn't add files only in the source.
 
