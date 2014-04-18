@@ -45,7 +45,7 @@ module JunitMerge
         end
       end
       0
-    rescue Error, OptionParse::ParseError => error
+    rescue Error, OptionParser::ParseError => error
       stderr.puts error.message
       1
     end
@@ -130,7 +130,7 @@ module JunitMerge
 
     def parse_args(args)
       parser = OptionParser.new do |parser|
-        parser.banner = usage
+        parser.banner = "USAGE: #$0 [options] SOURCES ... TARGET"
         parser.on '-u', '--update-only', "Only update nodes, don't append new nodes in the source." do
           @update_only = true
         end
@@ -139,13 +139,9 @@ module JunitMerge
       parser.parse!(args)
 
       args.size >= 1 or
-        raise Error, usage
+        raise Error, parser.banner
 
       args
-    end
-
-    def usage
-      "USAGE: #$0 [options] SOURCES ... TARGET"
     end
   end
 end
