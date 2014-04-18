@@ -34,7 +34,7 @@ module JunitMerge
               target_file_path = source_file_path.sub(source_path, target_path)
               if File.exist?(target_file_path)
                 merge_file(source_file_path, target_file_path)
-              else
+              elsif !@update_only
                 FileUtils.mkdir_p(File.dirname(target_file_path))
                 FileUtils.cp(source_file_path, target_file_path)
               end

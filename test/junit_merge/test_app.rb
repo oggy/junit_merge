@@ -106,7 +106,7 @@ describe JunitMerge::App do
       stderr.string.must_equal('')
     end
 
-    it "skips nodes only in the source if --update is given" do
+    it "skips nodes only in the source if --update-only is given" do
       create_file("#{tmp}/source.xml", 'a.a' => :fail, 'a.b' => :error)
       create_file("#{tmp}/target.xml", 'a.a' => :pass)
       app.run('--update-only', "#{tmp}/source.xml", "#{tmp}/target.xml").must_equal 0
@@ -160,12 +160,21 @@ describe JunitMerge::App do
       stderr.string.must_equal('')
     end
 
-    it "adds files only in the source" do
+    it "adds files only in the source by default" do
       create_file("#{tmp}/source/a.xml", 'a.a' => :fail, 'a.b' => :pass)
       create_directory("#{tmp}/target")
       app.run("#{tmp}/source", "#{tmp}/target").must_equal 0
       document = parse_file("#{tmp}/target/a.xml")
       results(document).must_equal([['a.a', :fail], ['a.b', :pass]])
+      stdout.string.must_equal('')
+      stderr.string.must_equal('')
+    end
+
+    it "skips files only in the source if --update-only is given" do
+      create_file("#{tmp}/source/a.xml", 'a.a' => :fail, 'a.b' => :pass)
+      create_directory("#{tmp}/target")
+      app.run('--update-only', "#{tmp}/source", "#{tmp}/target").must_equal 0
+      File.exist?("#{tmp}/target/a.xml").must_equal false
       stdout.string.must_equal('')
       stderr.string.must_equal('')
     end
