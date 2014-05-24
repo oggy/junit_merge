@@ -8,7 +8,7 @@ Gem::Specification.new do |gem|
   gem.email         = ['george.ogata@gmail.com']
   gem.description   = "Tool to merge JUnit XML reports."
   gem.summary       = ""
-  gem.homepage      = ''
+  gem.homepage      = 'https://github.com/oggy/junit_merge'
 
   gem.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   gem.files         = `git ls-files`.split("\n")
