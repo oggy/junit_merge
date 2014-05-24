@@ -1,4 +1,4 @@
-== LATEST
+== 0.1.2 2014-05-25
 
  * Invalid UTF-8 does not crash junit_merge.
 
