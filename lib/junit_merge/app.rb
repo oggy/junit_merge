@@ -53,8 +53,8 @@ module JunitMerge
     private
 
     def merge_file(source_path, target_path)
-      source_text = File.read(source_path)
-      target_text = File.read(target_path)
+      source_text = File.read(source_path).encode!('UTF-8', invalid: :replace)
+      target_text = File.read(target_path).encode!('UTF-8', invalid: :replace)
 
       if target_text =~ /\A\s*\z/m
         return

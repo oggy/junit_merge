@@ -189,6 +189,18 @@ describe JunitMerge::App do
     stderr.string.must_equal('')
   end
 
+  it "works around invalid UTF-8" do
+    create_file("#{tmp}/source.xml", "a.a\xFFb" => :pass)
+    create_file("#{tmp}/target.xml", "a.a\xFFb" => :fail)
+    app.run("#{tmp}/source.xml", "#{tmp}/target.xml").must_equal 0
+
+    document = parse_file("#{tmp}/target.xml")
+    results(document).must_equal([["a.a\uFFFDb", :pass]])
+
+    stdout.string.must_equal('')
+    stderr.string.must_equal('')
+  end
+
   it "whines if the source does not exist" do
     FileUtils.touch "#{tmp}/target.xml"
     app.run("#{tmp}/source.xml", "#{tmp}/target.xml").must_equal 1
