@@ -75,7 +75,7 @@ module JunitMerge
           attribute_predicate('classname', node['classname']),
           attribute_predicate('name', node['name']),
         ].join(' and ')
-        original = target.xpath("testsuite/testcase[#{predicates}]").first
+        original = target.xpath("//testsuite/testcase[#{predicates}]").first
 
         if original
           summary_diff.add(node, 1)
@@ -83,7 +83,7 @@ module JunitMerge
           original.replace(node)
         elsif !@update_only
           summary_diff.add(node, 1)
-          testsuite = target.xpath("testsuite").first
+          testsuite = target.xpath("//testsuite").first
           testsuite.add_child(node)
         end
 
@@ -92,7 +92,20 @@ module JunitMerge
         end
       end
 
+      update_total_failures(target)
+
       open(target_path, 'w') { |f| f.write(target.to_s) }
+    end
+
+    def update_total_failures(target)
+      all_suites_node = target.xpath("//testsuites").first
+      total_failures = 0
+      target.xpath("//testsuite").each do |suite|
+        if (value = suite["failures"])
+          total_failures += value.to_i
+        end
+      end
+      all_suites_node["failures"] = total_failures.to_s
     end
 
     def attribute_predicate(name, value)
